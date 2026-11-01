@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Tic Tac Toe</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background: #080b18;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+<script>
+
+const EMPTY = '';
+const HUMAN = 'O';
+const AI = 'X';
+
+let board = [
+    ['', '', ''],
+    ['', '', ''],
+    ['', '', '']
+];
+
+let cells = [];
+let cellTexts = [];
+let gameOver = false;
+let currentScene;
+
+let statusText;
+let resultText;
+let restartButton;
+
+
+// PHASER CONFIG
+const config = {
+    type: Phaser.AUTO,
+    width: 650,
+    height: 850,
+
+    scene: {
+        create: create
+    }
+};
+
+new Phaser.Game(config);
+
+
+// CREATE GAME
+function create() {
+
+    currentScene = this;
+
+    createBackground(this);
+
+    createHeader(this);
+
+    createGameBoard(this);
+
+    createStatus(this);
+
+    createRestartButton(this);
+}
+
+
+// BACKGROUND
+function createBackground(scene) {
+
+    scene.add.rectangle(
+        325,
+        425,
+        650,
+        850,
+        0x0b1020
+    );
+
+    scene.add.circle(
+        100,
+        150,
+        250,
+        0x24135c,
+        0.5
+    );
+
+    scene.add.circle(
+        550,
+        700,
+        250,
+        0x062f48,
+        0.5
+    );
+
+    // Main glass panel
+    scene.add.rectangle(
+        325,
+        430,
+        560,
+        720,
+        0x141a32,
+        0.95
+    ).setStrokeStyle(2, 0x46517d);
+}
+
+
+// HEADER
+function createHeader(scene) {
+
+    scene.add.text(
+        325,
+        75,
+        'TIC TAC TOE',
+        {
+            fontSize: '42px',
+            fontStyle: 'bold',
+            color: '#ffffff'
+        }
+    ).setOrigin(0.5);
+
+
+    scene.add.text(
+        325,
+        125,
+        'Human  O   vs   AI  X',
+        {
+            fontSize: '19px',
+            color: '#9da7c9'
+        }
+    ).setOrigin(0.5);
+}
+
+
+// GAME BOARD
+function createGameBoard(scene) {
+
+    const startX = 165;
+    const startY = 270;
+
+    const cellSize = 105;
+    const gap = 12;
+
+
+    for (let i = 0; i < 3; i++) {
+
+        cells[i] = [];
+        cellTexts[i] = [];
+
+
+        for (let j = 0; j < 3; j++) {
+
+            const x =
+                startX +
+                j * (cellSize + gap);
+
+            const y =
+                startY +
+                i * (cellSize + gap);
+
+
+            const cell = scene.add.rectangle(
+                x,
+                y,
+                cellSize,
+                cellSize,
+                0x222a46
+            )
+            .setStrokeStyle(
+                2,
+                0x56628a
+            )
+            .setInteractive();
+
+
+            cell.row = i;
+            cell.col = j;
+
+
+            // Hover effect
+            cell.on(
+                'pointerover',
+                function () {
+
+                    if (
+                        !gameOver &&
+                        board[this.row][this.col] === EMPTY
+                    ) {
+
+                        this.setFillStyle(0x343f66);
+                    }
+                }
+            );
+
+
+            cell.on(
+                'pointerout',
+                function () {
+
+                    if (
+                        !gameOver &&
+                        board[this.row][this.col] === EMPTY
+                    ) {
+
+                        this.setFillStyle(0x222a46);
+                    }
+                }
+            );
+
+
+            // Click
+            cell.on(
+                'pointerdown',
+                function () {
+
+                    humanMove(
+                        scene,
+                        this.row,
+                        this.col
+                    );
+
+                }
+            );
+
+
+            // Empty text
+            const text = scene.add.text(
+                x,
+                y,
+                '',
+                {
+                    fontSize: '68px',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5);
+
+
+            cells[i][j] = cell;
+            cellTexts[i][j] = text;
+        }
+    }
+}
+
+
+// STATUS
+function createStatus(scene) {
+
+    statusText = scene.add.text(
+        325,
+        690,
+        'Your turn — choose a square',
+        {
+            fontSize: '20px',
+            color: '#6fcfff'
+        }
+    ).setOrigin(0.5);
+
+
+    resultText = scene.add.text(
+        325,
+        735,
+        '',
+        {
+            fontSize: '28px',
+            fontStyle: 'bold',
+            color: '#ffffff'
+        }
+    ).setOrigin(0.5);
+}
+
+
+// RESTART BUTTON
+function createRestartButton(scene) {
+
+    restartButton = scene.add.rectangle(
+        325,
+        795,
+        210,
+        52,
+        0x6b45d8
+    )
+    .setStrokeStyle(2, 0xa98cff)
+    .setInteractive();
+
+
+    const buttonText = scene.add.text(
+        325,
+        795,
+        '↻  PLAY AGAIN',
+        {
+            fontSize: '18px',
+            fontStyle: 'bold',
+            color: '#ffffff'
+        }
+    ).setOrigin(0.5);
+
+
+    restartButton.on(
+        'pointerover',
+        function () {
+
+            this.setFillStyle(0x825fff);
+        }
+    );
+
+
+    restartButton.on(
+        'pointerout',
+        function () {
+
+            this.setFillStyle(0x6b45d8);
+        }
+    );
+
+
+    restartButton.on(
+        'pointerdown',
+        function () {
+
+            resetGame();
+        }
+    );
+}
+
+
+// HUMAN MOVE
+function humanMove(scene, row, col) {
+
+    if (gameOver) {
+        return;
+    }
+
+
+    if (board[row][col] !== EMPTY) {
+        return;
+    }
+
+
+    board[row][col] = HUMAN;
+
+    showMove(row, col, HUMAN);
+
+
+    let result = evaluate();
+
+
+    if (result === -10) {
+
+        endGame('🎉 YOU WIN!', HUMAN);
+        return;
+    }
+
+
+    if (!isMovesLeft()) {
+
+        endGame('🤝 DRAW!', EMPTY);
+        return;
+    }
+
+
+    statusText.setText('🤖 AI is thinking...');
+
+    disableBoard();
+
+
+    scene.time.delayedCall(
+        500,
+        function () {
+
+            aiMove();
+
+            enableBoard();
+        }
+    );
+}
+
+
+// AI MOVE
+function aiMove() {
+
+    if (gameOver) {
+        return;
+    }
+
+
+    let move = findBestMove();
+
+
+    if (move.row !== -1) {
+
+        board[move.row][move.col] = AI;
+
+        showMove(
+            move.row,
+            move.col,
+            AI
+        );
+    }
+
+
+    let result = evaluate();
+
+
+    if (result === 10) {
+
+        endGame('🤖 AI WINS!', AI);
+        return;
+    }
+
+
+    if (!isMovesLeft()) {
+
+        endGame('🤝 DRAW!', EMPTY);
+        return;
+    }
+
+
+    statusText.setText(
+        'Your turn — choose a square'
+    );
+}
+
+
+// DISPLAY MOVE
+function showMove(row, col, player) {
+
+    cellTexts[row][col].setText(player);
+
+
+    if (player === HUMAN) {
+
+        cellTexts[row][col].setColor('#59c8ff');
+
+        cells[row][col].setFillStyle(
+            0x16354d
+        );
+
+    }
+
+    else {
+
+        cellTexts[row][col].setColor('#e28cff');
+
+        cells[row][col].setFillStyle(
+            0x3d1e4f
+        );
+    }
+
+
+    // Pop animation
+    cellTexts[row][col].setScale(0);
+
+    currentScene.tweens.add({
+
+        targets: cellTexts[row][col],
+
+        scaleX: 1,
+
+        scaleY: 1,
+
+        duration: 250,
+
+        ease: 'Back.easeOut'
+    });
+}
+
+
+// CHECK BOARD
+function evaluate() {
+
+    // Rows
+    for (let i = 0; i < 3; i++) {
+
+        if (
+            board[i][0] !== EMPTY &&
+            board[i][0] === board[i][1] &&
+            board[i][1] === board[i][2]
+        ) {
+
+            return board[i][0] === AI ? 10 : -10;
+        }
+    }
+
+
+    // Columns
+    for (let j = 0; j < 3; j++) {
+
+        if (
+            board[0][j] !== EMPTY &&
+            board[0][j] === board[1][j] &&
+            board[1][j] === board[2][j]
+        ) {
+
+            return board[0][j] === AI ? 10 : -10;
+        }
+    }
+
+
+    // Main diagonal
+    if (
+        board[0][0] !== EMPTY &&
+        board[0][0] === board[1][1] &&
+        board[1][1] === board[2][2]
+    ) {
+
+        return board[0][0] === AI ? 10 : -10;
+    }
+
+
+    // Other diagonal
+    if (
+        board[0][2] !== EMPTY &&
+        board[0][2] === board[1][1] &&
+        board[1][1] === board[2][0]
+    ) {
+
+        return board[0][2] === AI ? 10 : -10;
+    }
+
+
+    return 0;
+}
+
+
+// CHECK EMPTY CELLS
+function isMovesLeft() {
+
+    for (let i = 0; i < 3; i++) {
+
+        for (let j = 0; j < 3; j++) {
+
+            if (board[i][j] === EMPTY) {
+
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+// MINIMAX WITH DEPTH FACTOR
+function minimax(depth, isMax) {
+
+    let score = evaluate();
+
+
+    // AI WIN
+    if (score === 10) {
+
+        return 10 - depth;
+    }
+
+
+    // HUMAN WIN
+    if (score === -10) {
+
+        return -10 + depth;
+    }
+
+
+    // DRAW
+    if (!isMovesLeft()) {
+
+        return 0;
+    }
+
+
+    // MAX = AI
+    if (isMax) {
+
+        let best = -Infinity;
+
+
+        for (let i = 0; i < 3; i++) {
+
+            for (let j = 0; j < 3; j++) {
+
+                if (board[i][j] === EMPTY) {
+
+                    board[i][j] = AI;
+
+
+                    let value =
+                        minimax(
+                            depth + 1,
+                            false
+                        );
+
+
+                    board[i][j] = EMPTY;
+
+
+                    best = Math.max(
+                        best,
+                        value
+                    );
+                }
+            }
+        }
+
+
+        return best;
+    }
+
+
+    // MIN = HUMAN
+    else {
+
+        let best = Infinity;
+
+
+        for (let i = 0; i < 3; i++) {
+
+            for (let j = 0; j < 3; j++) {
+
+                if (board[i][j] === EMPTY) {
+
+                    board[i][j] = HUMAN;
+
+
+                    let value =
+                        minimax(
+                            depth + 1,
+                            true
+                        );
+
+
+                    board[i][j] = EMPTY;
+
+
+                    best = Math.min(
+                        best,
+                        value
+                    );
+                }
+            }
+        }
+
+
+        return best;
+    }
+}
+
+
+// FIND BEST MOVE
+function findBestMove() {
+
+    let bestValue = -Infinity;
+
+    let bestMove = {
+        row: -1,
+        col: -1
+    };
+
+
+    for (let i = 0; i < 3; i++) {
+
+        for (let j = 0; j < 3; j++) {
+
+            if (board[i][j] === EMPTY) {
+
+                board[i][j] = AI;
+
+
+                let moveValue =
+                    minimax(
+                        0,
+                        false
+                    );
+
+
+                board[i][j] = EMPTY;
+
+
+                if (
+                    moveValue >
+                    bestValue
+                ) {
+
+                    bestValue = moveValue;
+
+                    bestMove.row = i;
+
+                    bestMove.col = j;
+                }
+            }
+        }
+    }
+
+
+    return bestMove;
+}
+
+
+// END GAME
+function endGame(message, winner) {
+
+    gameOver = true;
+
+    statusText.setText('Game Over');
+
+    resultText.setText(message);
+
+
+    // Highlight winning cells
+    if (winner !== EMPTY) {
+
+        highlightWinner(winner);
+    }
+}
+
+
+// FIND AND HIGHLIGHT WINNER
+function highlightWinner(player) {
+
+    const lines = [
+
+        [[0, 0], [0, 1], [0, 2]],
+        [[1, 0], [1, 1], [1, 2]],
+        [[2, 0], [2, 1], [2, 2]],
+
+        [[0, 0], [1, 0], [2, 0]],
+        [[0, 1], [1, 1], [2, 1]],
+        [[0, 2], [1, 2], [2, 2]],
+
+        [[0, 0], [1, 1], [2, 2]],
+        [[0, 2], [1, 1], [2, 0]]
+    ];
+
+
+    for (let line of lines) {
+
+        let a = line[0];
+        let b = line[1];
+        let c = line[2];
+
+
+        if (
+
+            board[a[0]][a[1]] === player &&
+
+            board[b[0]][b[1]] === player &&
+
+            board[c[0]][c[1]] === player
+
+        ) {
+
+            for (let pos of line) {
+
+                cells[pos[0]][pos[1]]
+                    .setFillStyle(0x316b52);
+            }
+        }
+    }
+}
+
+
+// DISABLE BOARD
+function disableBoard() {
+
+    for (let i = 0; i < 3; i++) {
+
+        for (let j = 0; j < 3; j++) {
+
+            cells[i][j].disableInteractive();
+        }
+    }
+}
+
+
+// ENABLE BOARD
+function enableBoard() {
+
+    if (gameOver) {
+        return;
+    }
+
+
+    for (let i = 0; i < 3; i++) {
+
+        for (let j = 0; j < 3; j++) {
+
+            if (
+                board[i][j] === EMPTY
+            ) {
+
+                cells[i][j].setInteractive();
+            }
+        }
+    }
+}
+
+
+// RESET GAME
+function resetGame() {
+
+    board = [
+
+        ['', '', ''],
+
+        ['', '', ''],
+
+        ['', '', '']
+
+    ];
+
+
+    gameOver = false;
+
+
+    for (let i = 0; i < 3; i++) {
+
+        for (let j = 0; j < 3; j++) {
+
+            cellTexts[i][j].setText('');
+
+            cellTexts[i][j].setScale(1);
+
+            cells[i][j].setFillStyle(
+                0x222a46
+            );
+
+            cells[i][j].setInteractive();
+        }
+    }
+
+
+    statusText.setText(
+        'Your turn — choose a square'
+    );
+
+    resultText.setText('');
+}
+
+</script>
+
+</body>
+</html>
